@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Matthew's Wash Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@500;700;800&family=DM+Mono:wght@500&display=swap">
+<style>
+/* Layout: one column "wash bay" — big timer up top, money totals, then the job log */
+:root{
+  --bg:#eef6f8; --surface:#ffffff; --ink:#0f2a33; --muted:#557079;
+  --line:#d3e4e9; --aqua:#0a8fb0; --aqua-ink:#ffffff; --sun:#ffc531; --sun-ink:#3a2a00;
+  --money:#12854a; --danger:#c23b2a;
+  --display:"Lilita One","Arial Rounded MT Bold",system-ui,sans-serif;
+  --body:"Nunito",system-ui,-apple-system,sans-serif;
+  --mono:"DM Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0b1a20; --surface:#122830; --ink:#e6f4f7; --muted:#8fb0ba; --line:#21414b;
+  --aqua:#37c0e0; --aqua-ink:#06222b; --sun:#ffcf4d; --sun-ink:#2a1e00; --money:#4cd38a; --danger:#ff7a68; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0b1a20; --surface:#122830; --ink:#e6f4f7; --muted:#8fb0ba; --line:#21414b;
+  --aqua:#37c0e0; --aqua-ink:#06222b; --sun:#ffcf4d; --sun-ink:#2a1e00; --money:#4cd38a; --danger:#ff7a68; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1{font-family:var(--display);font-weight:400;font-size:2.1rem;line-height:1.05;margin:0;letter-spacing:.01em;text-wrap:balance}
+h1 span{color:var(--aqua)}
+.rate{display:inline-block;margin-top:6px;background:var(--sun);color:var(--sun-ink);font-weight:800;border-radius:999px;padding:3px 12px;font-size:.9rem}
+h2{font-family:var(--display);font-weight:400;font-size:1.35rem;margin:0}
+.bay{background:var(--surface);border:2px solid var(--line);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:14px}
+label{font-weight:800;font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);display:block;margin-bottom:4px}
+input{width:100%;font:inherit;font-size:1.05rem;padding:11px 12px;border-radius:12px;border:2px solid var(--line);background:var(--bg);color:var(--ink)}
+input:focus-visible,button:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.row>*{min-width:0}
+.clock{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:14px 16px;border-radius:14px;background:var(--bg);border:2px dashed var(--line)}
+.clock.live{border-color:var(--aqua);border-style:solid}
+.time{font-family:var(--mono);font-size:2.6rem;font-variant-numeric:tabular-nums;line-height:1}
+.live-money{font-family:var(--mono);font-size:1.5rem;color:var(--money);font-variant-numeric:tabular-nums}
+.btns{display:flex;gap:10px;flex-wrap:wrap}
+button{font:inherit;font-weight:800;border:0;border-radius:12px;padding:12px 18px;cursor:pointer;font-size:1rem}
+.go{background:var(--aqua);color:var(--aqua-ink);flex:1}
+.stop{background:var(--sun);color:var(--sun-ink);flex:1}
+.ghost{background:transparent;color:var(--muted);border:2px solid var(--line)}
+.or{color:var(--muted);font-size:.9rem;text-align:center}
+.totals{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.tot{background:var(--surface);border:2px solid var(--line);border-radius:14px;padding:12px}
+.tot b{display:block;font-family:var(--mono);font-size:1.35rem;font-variant-numeric:tabular-nums;font-weight:500}
+.tot.big b{color:var(--money)}
+.tot small{color:var(--muted);font-weight:700;font-size:.78rem;text-transform:uppercase;letter-spacing:.05em}
+.owed{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--sun);color:var(--sun-ink);border-radius:18px;padding:16px 18px}
+.owed small{display:block;font-weight:800;font-size:.8rem;text-transform:uppercase;letter-spacing:.06em}
+.owed b{display:block;font-family:var(--mono);font-size:2.2rem;font-weight:500;line-height:1.1;font-variant-numeric:tabular-nums}
+.owed .note{color:var(--sun-ink);opacity:.8}
+.owed .stop{background:var(--ink);color:var(--bg);flex:0 0 auto}
+.pill{display:inline-block;font-size:.75rem;font-weight:800;border-radius:999px;padding:1px 9px;margin-left:6px;vertical-align:2px}
+.pill.unpaid{background:var(--sun);color:var(--sun-ink)}
+.pill.paid{background:var(--line);color:var(--muted)}
+.job.isPaid .amt{color:var(--muted);text-decoration:line-through}
+.acts{grid-row:2;justify-self:end;display:flex;gap:12px}
+.acts button{background:none;color:var(--muted);padding:2px 0;font-size:.85rem;font-weight:700}
+.acts .sure{color:var(--danger)}
+.log{display:flex;flex-direction:column;gap:8px}
+.job{display:grid;grid-template-columns:1fr auto;gap:2px 12px;align-items:center;background:var(--surface);border:2px solid var(--line);border-radius:14px;padding:12px 14px}
+.job .car{font-weight:800;min-width:0;overflow-wrap:anywhere}
+.job .meta{color:var(--muted);font-size:.9rem;font-variant-numeric:tabular-nums}
+.job .amt{font-family:var(--mono);color:var(--money);font-size:1.2rem;text-align:right;grid-row:1}
+.job .del{grid-row:2;justify-self:end;background:none;color:var(--muted);padding:2px 0;font-size:.85rem;font-weight:700}
+.job .del.sure{color:var(--danger)}
+.empty{border:2px dashed var(--line);border-radius:14px;padding:20px;color:var(--muted);text-align:center}
+.note{color:var(--muted);font-size:.85rem}
+.msg{color:var(--danger);font-weight:700;font-size:.9rem}
+@media (max-width:420px){.time{font-size:2.1rem}.totals{grid-template-columns:1fr 1fr}.tot.big{grid-column:1/-1}}
+@media (prefers-reduced-motion:no-preference){.clock.live .time{animation:pulse 2s ease-in-out infinite}}
+@keyframes pulse{50%{opacity:.75}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Matthew's <span>Wash Log</span></h1>
+    <div class="rate">$0.25 every minute</div>
+  </header>
+
+  <section class="bay" aria-label="Start a job">
+    <h2>New job</h2>
+    <div class="row">
+      <div><label for="car">Car</label><input id="car" placeholder="Red Honda Civic" autocomplete="off"></div>
+      <div><label for="date">Date</label><input id="date" type="date"></div>
+    </div>
+    <div class="clock" id="clock">
+      <span class="time" id="time">0:00</span>
+      <span class="live-money" id="liveMoney">$0.00</span>
+    </div>
+    <div class="btns" id="timerBtns">
+      <button class="go" id="start">Start timer</button>
+    </div>
+    <div class="or">or type the minutes yourself</div>
+    <div class="row">
+      <div><label for="mins">Minutes</label><input id="mins" type="number" min="1" step="1" inputmode="numeric" placeholder="40"></div>
+      <div style="display:flex;align-items:flex-end"><button class="ghost" id="addManual" style="width:100%">Save job</button></div>
+    </div>
+    <div class="msg" id="msg" hidden></div>
+  </section>
+
+  <section class="owed" aria-label="Money owed">
+    <div><small>Dad still owes</small><b id="tOwed">$0.00</b><span class="note" id="owedNote">Nothing to pay right now</span></div>
+    <button class="stop" id="payAll" hidden>Mark all paid</button>
+  </section>
+
+  <section class="totals" aria-label="Totals">
+    <div class="tot big"><small>Money made</small><b id="tMoney">$0.00</b></div>
+    <div class="tot"><small>Time worked</small><b id="tTime">0 min</b></div>
+    <div class="tot"><small>Cars done</small><b id="tCars">0</b></div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:10px">
+    <h2>All jobs</h2>
+    <div class="log" id="log">
+      <div class="empty">No jobs yet. Type the car, hit <b>Start timer</b>, and stop it when you're done. It saves here.</div>
+    </div>
+    <p class="note" id="where">Loading your saved jobs…</p>
+  </section>
+</div>
+
+<script>
+const RATE=0.25, LS_JOBS="washlog.jobs", LS_RUN="washlog.running";
+const $=id=>document.getElementById(id);
+const money=n=>"$"+n.toFixed(2);
+const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+const ls={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{v==null?localStorage.removeItem(k):localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+$("date").value=today();
+
+let jobs=[], col=null, running=ls.get(LS_RUN), tick=null;
+
+function fmtTime(sec){const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s=sec%60;
+  return h?h+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0"):m+":"+String(s).padStart(2,"0")}
+function fmtMins(m){const h=Math.floor(m/60),r=m%60;return h?h+" hr "+r+" min":m+" min"}
+function fmtDate(s){const [y,mo,d]=s.split("-").map(Number);return new Date(y,mo-1,d).toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric",year:"numeric"})}
+function say(t){$("msg").textContent=t;$("msg").hidden=!t}
+
+function render(){
+  const sorted=[...jobs].sort((a,b)=>(b.date+b.created).localeCompare(a.date+a.created));
+  const totMin=jobs.reduce((s,j)=>s+j.minutes,0);
+  $("tMoney").textContent=money(totMin*RATE);
+  $("tTime").textContent=fmtMins(totMin);
+  $("tCars").textContent=jobs.length;
+  const owedJobs=jobs.filter(j=>!j.paid), owedMin=owedJobs.reduce((s,j)=>s+j.minutes,0);
+  $("tOwed").textContent=money(owedMin*RATE);
+  $("owedNote").textContent=owedJobs.length?owedJobs.length+(owedJobs.length===1?" job":" jobs")+" not paid yet":"All paid up";
+  $("payAll").hidden=!owedJobs.length;
+  const log=$("log");
+  if(!sorted.length){log.innerHTML='<div class="empty">No jobs yet. Type the car, hit <b>Start timer</b>, and stop it when you\'re done. It saves here.</div>';return}
+  log.innerHTML="";
+  for(const j of sorted){
+    const el=document.createElement("div");el.className="job";
+    if(j.paid)el.classList.add("isPaid");
+    const car=document.createElement("div");car.className="car";car.textContent=j.car;
+    const pill=document.createElement("span");pill.className="pill "+(j.paid?"paid":"unpaid");pill.textContent=j.paid?"Paid":"Owed";car.append(pill);
+    const amt=document.createElement("div");amt.className="amt";amt.textContent=money(j.minutes*RATE);
+    const meta=document.createElement("div");meta.className="meta";meta.textContent=fmtDate(j.date)+" · "+fmtMins(j.minutes);
+    const acts=document.createElement("div");acts.className="acts";
+    const pay=document.createElement("button");pay.textContent=j.paid?"Mark not paid":"Mark paid";pay.onclick=()=>setPaid([j.id],!j.paid);
+    const del=document.createElement("button");del.textContent="Delete";acts.append(pay,del);
+    del.onclick=()=>{ if(!del.classList.contains("sure")){del.classList.add("sure");del.textContent="Tap again to delete";setTimeout(()=>{del.classList.remove("sure");del.textContent="Delete"},3000);return} removeJob(j.id)};
+    el.append(car,amt,meta,acts);log.append(el);
+  }
+}
+
+async function saveJob(car,date,minutes){
+  const job={id:"j"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),car,date,minutes,paid:false,created:new Date().toISOString()};
+  if(col){ try{await col.doc(job.id).set(job);return true}catch(e){say("Couldn't save that job. Try again in a moment.");return false} }
+  jobs.push(job);ls.set(LS_JOBS,jobs);render();return true;
+}
+async function setPaid(ids,paid){
+  const stamp=paid?new Date().toISOString():null;
+  if(col){for(const id of ids){try{await col.doc(id).update({paid,paidOn:stamp})}catch(e){say("Couldn't update that. Try again.");return}}return}
+  jobs=jobs.map(j=>ids.includes(j.id)?{...j,paid,paidOn:stamp}:j);ls.set(LS_JOBS,jobs);render();
+}
+$("payAll").onclick=()=>{const b=$("payAll");
+  if(!b.dataset.sure){b.dataset.sure="1";b.textContent="Tap again: "+$("tOwed").textContent+" paid?";setTimeout(()=>{delete b.dataset.sure;b.textContent="Mark all paid"},4000);return}
+  delete b.dataset.sure;b.textContent="Mark all paid";setPaid(jobs.filter(j=>!j.paid).map(j=>j.id),true)};
+async function removeJob(id){
+  if(col){try{await col.doc(id).delete()}catch(e){say("Couldn't delete that one. Try again.")}return}
+  jobs=jobs.filter(j=>j.id!==id);ls.set(LS_JOBS,jobs);render();
+}
+
+function showTimer(){
+  const btns=$("timerBtns");
+  if(running){
+    $("clock").classList.add("live");
+    btns.innerHTML='<button class="stop" id="stop">Stop &amp; save</button><button class="ghost" id="cancel">Cancel</button>';
+    $("stop").onclick=stopTimer;$("cancel").onclick=()=>{running=null;ls.set(LS_RUN,null);showTimer()};
+    if(running.car)$("car").value=running.car;
+    const upd=()=>{const sec=Math.max(0,Math.floor((Date.now()-running.start)/1000));$("time").textContent=fmtTime(sec);$("liveMoney").textContent=money(Math.round(sec/60)*RATE)};
+    upd();clearInterval(tick);tick=setInterval(upd,1000);
+  }else{
+    clearInterval(tick);$("clock").classList.remove("live");$("time").textContent="0:00";$("liveMoney").textContent="$0.00";
+    btns.innerHTML='<button class="go" id="start">Start timer</button>';$("start").onclick=startTimer;
+  }
+}
+function startTimer(){
+  const car=$("car").value.trim();
+  if(!car){say("Type which car first.");$("car").focus();return}
+  say("");running={start:Date.now(),car,date:$("date").value||today()};ls.set(LS_RUN,running);showTimer();
+}
+async function stopTimer(){
+  const mins=Math.max(1,Math.round((Date.now()-running.start)/60000));
+  const car=$("car").value.trim()||running.car;
+  if(await saveJob(car,$("date").value||running.date,mins)){running=null;ls.set(LS_RUN,null);$("car").value="";showTimer();say("")}
+}
+$("addManual").onclick=async()=>{
+  const car=$("car").value.trim(),m=parseInt($("mins").value,10);
+  if(!car){say("Type which car first.");$("car").focus();return}
+  if(!(m>0)){say("Type how many minutes you worked.");$("mins").focus();return}
+  if(await saveJob(car,$("date").value||today(),m)){$("car").value="";$("mins").value="";say("")}
+};
+showTimer();
+
+// Storage: the artifact's saved database when available, otherwise this browser.
+function useLocal(note){jobs=ls.get(LS_JOBS)||[];render();$("where").textContent=note}
+(async()=>{
+  let db=null;
+  try{db=window.claude&&window.claude.use?await window.claude.use("db"):null}catch(e){db=null}
+  if(!db){useLocal("Saves on this phone or computer only.");return}
+  col=db.collection("jobs");
+  const timer=setTimeout(()=>{$("where").textContent="Can't reach your saved jobs yet. Check the internet."},10000);
+  col.onSnapshot(snap=>{
+    jobs=snap.docs.map(d=>d.data()).filter(Boolean).map(d=>({...d,minutes:Number(d.minutes)||0}));
+    render();
+    if(!snap.metadata.fromCache){clearTimeout(timer);$("where").textContent="Saved to your account, so it's there next time you open this."}
+  },err=>{clearTimeout(timer);col=null;useLocal("Couldn't reach saved jobs, so this is saving on this device only.")});
+})();
+</script>
+</body>
+</html>
